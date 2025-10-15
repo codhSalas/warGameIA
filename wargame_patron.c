@@ -6,6 +6,7 @@
 #define NB_LIGNES 10
 #define NB_COLONNES 10
 #define INFINI 10000
+#define PROFONDEUR 3
 
 // #define DEBUG
 
@@ -20,7 +21,10 @@ Pion *plateauDeJeu;
 void f_affiche_plateau(Pion *plateau);
 int f_convert_char2int(char c);
 char f_convert_int2char(int i);
-
+int f_eval(Pion *plateau, int joueur);
+int f_min(Pion *plateau, int joueur , int profondeur);
+int f_max(Pion *plateau, int joueur , int profondeur);
+Pion * f_copy_plateau(Pion *plateau);
 
 
 int f_convert_char2int(char c)
@@ -271,7 +275,7 @@ int f_bataille(int l, int c)
 			somme += plateauDeJeu[i*NB_COLONNES+j].couleur*plateauDeJeu[i*NB_COLONNES+j].valeur;
 		}
 	}
-	somme -= plateauDeJeu[l*NB_COLONNES+c].couleur*plateauDeJeu[l*NB_COLONNES+c].valeur;
+	// somme -= plateauDeJeu[l*NB_COLONNES+c].couleur*plateauDeJeu[l*NB_COLONNES+c].valeur;
 
 #ifdef DEBUG
 	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
@@ -422,7 +426,7 @@ int f_eval(Pion* jeu,int joueur)
 				}
 			}
 		}
-		return distance/nb_pion;
+		return (NB_LIGNES -distance/nb_pion);
 }
 
 //copie du plateau
@@ -457,15 +461,54 @@ Pion* f_raz_plateau()
 }
 
 //Fonction min trouve le minimum des noeuds fils
-??? f_min(???)
-		{
-	/** A remplir **/
+int f_min(Pion* plateau, int joueur,int profondeur)
+	{
+		if(profondeur==PROFONDEUR){
+			return f_eval(plateau,joueur);
 		}
+		// regarde si verfier f gagnat a chaque tour est utile
+
+		for(int i=0;i<NB_LIGNES;i++){
+				for(int j=0;j<NB_COLONNES;j++){
+					if(plateau[i*NB_COLONNES+j].couleur==joueur){
+						
+						Pion * sous_plateau = f_copy_plateau(plateau);
+						for(int si=-1;si<=1;si++){
+							for(int sj=-1;sj<=1;sj++){
+								if(f_test_mouvement(plateau,i,j,i+si,j+sj,joueur)==0){
+									f_bouge_piece(sous_plateau,i,j,i+si,j+sj,joueur);
+									return f_min(sous_plateau,-joueur,profondeur+1);
+								}
+							}
+						}
+					}
+				}
+			}
+			
+	}
 
 //Fonction max trouve le maximum des noeuds fils
-??? f_max(???)
+int f_max(Pion* plateau, int joueur,int profondeur)
 		{
-	/** A remplir **/
+			if(profondeur==PROFONDEUR){
+				return f_eval(plateau,joueur);
+			}
+			for(int i=0;i<NB_LIGNES;i++){
+				for(int j=0;j<NB_COLONNES;j++){
+					if(plateau[i*NB_COLONNES+j].couleur==joueur){
+						
+						Pion * sous_plateau = f_copy_plateau(plateau);
+						for(int si=-1;si<=1;si++){
+							for(int sj=-1;sj<=1;sj++){
+								if(f_test_mouvement(plateau,i,j,i+si,j+sj,joueur)==0){
+									f_bouge_piece(sous_plateau,i,j,i+si,j+sj,joueur);
+									return f_min(sous_plateau,-joueur,profondeur+1);
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
 /**
