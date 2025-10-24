@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 
 #define NB_LIGNES 10
@@ -59,7 +61,6 @@ char f_convert_int2char(int i)
 Pion *f_init_plateau()
 {
 	int i, j;
-	// f_eval
 	Pion *plateau=NULL;
 
 
@@ -417,24 +418,25 @@ int f_eval(Pion* jeu,int joueur)
 		//densite des pions du joueur
 		//la moyenne de la distance entre les points et la promotion
 		//
-		int distance=0;
-		int nb_pion=0;
-		for(int i=0;i<NB_LIGNES;i++)
-		{
-			for(int j=0;j<NB_COLONNES;j++)
-			{
-				if(jeu[i*NB_COLONNES+j].couleur==joueur)
-				{
-					nb_pion++;
-					if(jeu[i*NB_COLONNES+j].couleur==1){
-						distance+=i;
-					}else{
-						distance+=NB_LIGNES-1-i;
-					}
-				}
-			}
-		}
-		return (NB_LIGNES -distance/nb_pion);
+		// int distance=0;
+		// int nb_pion=0;
+		// for(int i=0;i<NB_LIGNES;i++)
+		// {
+		// 	for(int j=0;j<NB_COLONNES;j++)
+		// 	{
+		// 		if(jeu[i*NB_COLONNES+j].couleur==joueur)
+		// 		{
+		// 			nb_pion++;
+		// 			if(jeu[i*NB_COLONNES+j].couleur==1){
+		// 				distance+=i;
+		// 			}else{
+		// 				distance+=NB_LIGNES-1-i;
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// return (NB_LIGNES -distance/nb_pion);
+	return rand()%100;
 }
 
 //copie du plateau
@@ -467,17 +469,28 @@ Pion* f_raz_plateau()
 	}
 	return jeu;	
 }
-
-//Fonction min trouve le minimum des noeuds fils
+Pion* f_copy_plateau(Pion* plateau){
+	Pion* copie = NULL;
+	int i, j;
+	copie = (Pion *) malloc(NB_LIGNES * NB_COLONNES * sizeof (Pion));
+	for (i = 0; i < NB_LIGNES; i++){
+		for (j = 0; j < NB_COLONNES; j++){
+			copie[i * NB_COLONNES + j].couleur = plateau[i * NB_COLONNES + j].couleur;
+			copie[i * NB_COLONNES + j].valeur = plateau[i * NB_COLONNES + j].valeur;
+		}
+	}
+	return copie;	
+}
 int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur){
 
 	if(profondeur==PROFONDEUR){
 		return f_eval(plateau,joueur);
 	}
-	int val = INFINITY;
+	int val = INFINI;
 	
 	for (int i = 0; i < NB_LIGNES; i++) {
 		for (int j = 0; j < NB_COLONNES; j++) {
+
 			if (plateau[i * NB_COLONNES + j].couleur == joueur) {
 				for (int si = -1; si <= 1; si++) {
 					for (int sj = -1; sj <= 1; sj++) {
@@ -485,14 +498,17 @@ int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur){
 							Pion* sous_plateau = f_copy_plateau(plateau);
 							f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
 							int score = f_max(sous_plateau, -joueur,suite, profondeur + 1);
-							if (score < val)
+							if (score < val){
 								val = score;
-								suite->curX = i;
-								suite->curY = j;
-								suite->nextX = i + si;
-								suite->nextY = j + sj;
-								suite->couleur = joueur;
-								suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+								if (profondeur==0){
+									suite->curX = i;
+									suite->curY = j;
+									suite->nextX = i + si;
+									suite->nextY = j + sj;
+									suite->couleur = joueur;
+									suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+								}
+							}
 							free(sous_plateau);
 						}
 					}
@@ -504,13 +520,12 @@ int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur){
     return val;
 }
 
-//Fonction max trouve le maximum des noeuds fils
 int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur){
 
 	if(profondeur==PROFONDEUR){
 		return f_eval(plateau,joueur);
 	}
-	int val = -INFINITY;
+	int val = -INFINI;
 	
 	for (int i = 0; i < NB_LIGNES; i++) {
         for (int j = 0; j < NB_COLONNES; j++) {
@@ -521,14 +536,17 @@ int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur){
                             Pion* sous_plateau = f_copy_plateau(plateau);
                             f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
                             int score = f_min(sous_plateau, -joueur,suite, profondeur + 1);
-                            if (score > val)
+                            if (score > val){
                                 val = score;
-								suite->curX = i;
-								suite->curY = j;
-								suite->nextX = i + si;
-								suite->nextY = j + sj;
-								suite->couleur = joueur;
-								suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+								if (profondeur==0){
+									suite->curX = i;
+									suite->curY = j;
+									suite->nextX = i + si;
+									suite->nextY = j + sj;
+									suite->couleur = joueur;
+									suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+								}
+							}
                             free(sous_plateau);
                         }
                     }
@@ -549,7 +567,21 @@ void f_IA(int joueur)
 	printf("dbg: entering %s %d\n", __FUNCTION__, __LINE__);
 #endif
 
-	/** A remplir **/
+	Suite * suite = malloc(sizeof(Suite));
+	if(suite==NULL){
+		printf("Erreur allocation memoire\n");
+		exit (1);
+	}
+	
+	if(joueur==1){
+		f_max(plateauDeJeu,joueur,suite,0);
+	}else{
+		f_min(plateauDeJeu,joueur,suite,0);
+	}
+	f_bouge_piece(plateauDeJeu,suite->curX,suite->curY,suite->nextX,suite->nextY,joueur);
+	free(suite);
+	// sleep(1);
+	
 
 #ifdef DEBUG
 	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
@@ -603,6 +635,8 @@ void f_humain(int joueur)
 
 int main(int argv, char *argc[])
 {
+	srand(time(NULL));
+
 	int fin = 0,mode=0 , ret, joueur = 1;
 	printf("1 humain vs IA\n2 humain vs humain\n3 IA vs IA\n");
 	scanf("%d",&mode);
