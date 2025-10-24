@@ -15,16 +15,24 @@ typedef struct pion_s
 	int couleur;
 	int valeur;
 }Pion;
-
+typedef struct suite_s
+{
+	int curX;
+	int curY;
+	int nextX;
+	int nextY;
+	int couleur;
+	int valeur;
+}Suite;
 Pion *plateauDeJeu;
 
 void f_affiche_plateau(Pion *plateau);
 int f_convert_char2int(char c);
 char f_convert_int2char(int i);
 int f_eval(Pion *plateau, int joueur);
-int f_min(Pion *plateau, int joueur , int profondeur);
-int f_max(Pion *plateau, int joueur , int profondeur);
-Pion * f_copy_plateau(Pion *plateau);
+int f_min(Pion *plateau, int joueur, Suite *suite , int profondeur);
+int f_max(Pion *plateau, int joueur, Suite *suite , int profondeur);
+Pion * f_copy_plateau(Pion *plateau);	
 
 
 int f_convert_char2int(char c)
@@ -461,7 +469,8 @@ Pion* f_raz_plateau()
 }
 
 //Fonction min trouve le minimum des noeuds fils
-int f_min(Pion* plateau, int joueur,int profondeur){
+int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur){
+
 	if(profondeur==PROFONDEUR){
 		return f_eval(plateau,joueur);
 	}
@@ -475,9 +484,15 @@ int f_min(Pion* plateau, int joueur,int profondeur){
 						if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
 							Pion* sous_plateau = f_copy_plateau(plateau);
 							f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-							int score = f_max(sous_plateau, -joueur, profondeur + 1);
+							int score = f_max(sous_plateau, -joueur,suite, profondeur + 1);
 							if (score < val)
 								val = score;
+								suite->curX = i;
+								suite->curY = j;
+								suite->nextX = i + si;
+								suite->nextY = j + sj;
+								suite->couleur = joueur;
+								suite->valeur = plateau[i * NB_COLONNES + j].valeur;
 							free(sous_plateau);
 						}
 					}
@@ -490,7 +505,7 @@ int f_min(Pion* plateau, int joueur,int profondeur){
 }
 
 //Fonction max trouve le maximum des noeuds fils
-int f_max(Pion* plateau, int joueur,int profondeur){
+int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur){
 
 	if(profondeur==PROFONDEUR){
 		return f_eval(plateau,joueur);
@@ -505,9 +520,15 @@ int f_max(Pion* plateau, int joueur,int profondeur){
                         if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
                             Pion* sous_plateau = f_copy_plateau(plateau);
                             f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-                            int score = f_min(sous_plateau, -joueur, profondeur + 1);
+                            int score = f_min(sous_plateau, -joueur,suite, profondeur + 1);
                             if (score > val)
                                 val = score;
+								suite->curX = i;
+								suite->curY = j;
+								suite->nextX = i + si;
+								suite->nextY = j + sj;
+								suite->couleur = joueur;
+								suite->valeur = plateau[i * NB_COLONNES + j].valeur;
                             free(sous_plateau);
                         }
                     }
