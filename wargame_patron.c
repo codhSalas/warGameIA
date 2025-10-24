@@ -461,31 +461,33 @@ Pion* f_raz_plateau()
 }
 
 //Fonction min trouve le minimum des noeuds fils
-int f_min(Pion* plateau, int joueur,int profondeur)
-	{
-		if(profondeur==PROFONDEUR){
-			return f_eval(plateau,joueur);
-		}
-		// regarde si verfier f gagnat a chaque tour est utile
-
-		for(int i=0;i<NB_LIGNES;i++){
-				for(int j=0;j<NB_COLONNES;j++){
-					if(plateau[i*NB_COLONNES+j].couleur==joueur){
-						
-						Pion * sous_plateau = f_copy_plateau(plateau);
-						for(int si=-1;si<=1;si++){
-							for(int sj=-1;sj<=1;sj++){
-								if(f_test_mouvement(plateau,i,j,i+si,j+sj,joueur)==0){
-									f_bouge_piece(sous_plateau,i,j,i+si,j+sj,joueur);
-									return f_min(sous_plateau,-joueur,profondeur+1);
-								}
-							}
+int f_min(Pion* plateau, int joueur,int profondeur){
+	if(profondeur==PROFONDEUR){
+		return f_eval(plateau,joueur);
+	}
+	int val = INFINITY;
+	
+	for (int i = 0; i < NB_LIGNES; i++) {
+		for (int j = 0; j < NB_COLONNES; j++) {
+			if (plateau[i * NB_COLONNES + j].couleur == joueur) {
+				for (int si = -1; si <= 1; si++) {
+					for (int sj = -1; sj <= 1; sj++) {
+						if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+							Pion* sous_plateau = f_copy_plateau(plateau);
+							f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+							int score = f_max(sous_plateau, -joueur, profondeur + 1);
+							if (score < val)
+								val = score;
+							free(sous_plateau);
 						}
 					}
 				}
 			}
-			
+		}
 	}
+
+    return val;
+}
 
 //Fonction max trouve le maximum des noeuds fils
 int f_max(Pion* plateau, int joueur,int profondeur){
