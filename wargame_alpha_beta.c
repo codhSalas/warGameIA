@@ -527,46 +527,46 @@ int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur,int * alpha, 
 
 int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur,int * alpha, int * beta){  
 
-	if(profondeur==PROFONDEUR){
-		return f_eval(plateau,joueur);
-	}
-	int val = -INFINI;
+        if(profondeur==PROFONDEUR){
+            return f_eval(plateau,joueur);
+        }
+        int val = -INFINI;
 	
-	for (int i = 0; i < NB_LIGNES; i++) {
-        for (int j = 0; j < NB_COLONNES; j++) {
-            if (plateau[i * NB_COLONNES + j].couleur == joueur) {
-                for (int si = -1; si <= 1; si++) {
-                    for (int sj = -1; sj <= 1; sj++) {
-                        if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-                            Pion* sous_plateau = f_copy_plateau(plateau);
-                            f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-                            int score = f_min(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
+        for (int i = 0; i < NB_LIGNES; i++) {
+            for (int j = 0; j < NB_COLONNES; j++) {
+                if (plateau[i * NB_COLONNES + j].couleur == joueur) {
+                    for (int si = -1; si <= 1; si++) {
+                        for (int sj = -1; sj <= 1; sj++) {
+                            if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+                                Pion* sous_plateau = f_copy_plateau(plateau);
+                                f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+                                int score = f_min(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
 
-                            if (score > val){
-                                val = score;
-								if (profondeur==0){
-									suite->curX = i;
-									suite->curY = j;
-									suite->nextX = i + si;
-									suite->nextY = j + sj;
-									suite->couleur = joueur;
-									suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-								}
-                            free(sous_plateau);
-                            if(*alpha >= val){
-                                return val;
+                                if (score > val){
+                                    val = score;
+                                    if (profondeur==0){
+                                        suite->curX = i;
+                                        suite->curY = j;
+                                        suite->nextX = i + si;
+                                        suite->nextY = j + sj;
+                                        suite->couleur = joueur;
+                                        suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+                                    }
+                                    free(sous_plateau);
+                                    if(*alpha >= val){
+                                        return val;
+                                    }
+                                    *beta = (val < *beta)?val:*beta;
+                                }
                             }
-                            *beta = (val < *beta)?val:*beta;
                         }
                     }
                 }
             }
         }
-    }
-
     return val;
-}
 
+}
 /**
  * Calcule et joue le meilleur cout
  * */
@@ -594,25 +594,24 @@ void f_IA(int joueur)
 	// sleep(1);
 	
 
-#ifdef DEBUG
-	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
-#endif
+    #ifdef DEBUG
+        printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
+    #endif
 }
 
 
 /**
  * Demande le choix du joueur humain et calcule le coup demande
  * */
-void f_humain(int joueur)
-{
+void f_humain(int joueur){
 	char c1, c2;
 	char buffer[32];
 	int l1, l2;
 
 
-#ifdef DEBUG
-	printf("dbg: entering %s %d\n", __FUNCTION__, __LINE__);
-#endif
+    #ifdef DEBUG
+        printf("dbg: entering %s %d\n", __FUNCTION__, __LINE__);
+    #endif
 
 	printf("joueur ");
 	switch(joueur)
@@ -644,8 +643,7 @@ void f_humain(int joueur)
 #endif
 }
 
-int main(int argv, char *argc[])
-{
+int main(int argv, char *argc[]){
 	srand(time(NULL));
 
 	int fin = 0,mode=0 , ret, joueur = 1;
@@ -691,9 +689,9 @@ int main(int argv, char *argc[])
 		joueur = -joueur;
 	}
 
-#ifdef DEBUG
-	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
-#endif
+    #ifdef DEBUG
+        printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
+    #endif
 
 	return 0;
 }
