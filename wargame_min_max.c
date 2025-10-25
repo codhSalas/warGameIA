@@ -413,29 +413,14 @@ int f_valeur(Pion* jeu, int joueur)
 }
 
 //fonction d'évaluation
-int f_eval(Pion* jeu,int joueur)
-{
-		//densite des pions du joueur
-		//la moyenne de la distance entre les points et la promotion
-		//
-		// int distance=0;
-		// int nb_pion=0;
-		// for(int i=0;i<NB_LIGNES;i++)
-		// {
-		// 	for(int j=0;j<NB_COLONNES;j++)
-		// 	{
-		// 		if(jeu[i*NB_COLONNES+j].couleur==joueur)
-		// 		{
-		// 			nb_pion++;
-		// 			if(jeu[i*NB_COLONNES+j].couleur==1){
-		// 				distance+=i;
-		// 			}else{
-		// 				distance+=NB_LIGNES-1-i;
-		// 			}
-		// 		}
-		// 	}
-		// }
-		// return (NB_LIGNES -distance/nb_pion);
+int f_eval(Pion* jeu,int joueur){
+	int score = 0;
+	int nbPionJoueur = f_nbPions(jeu,joueur);
+	int nbPionAdversaire = f_nbPions(jeu,-joueur);
+	int valeurJoueur = f_valeur(jeu,joueur);
+	int valeurAdversaire = f_valeur(jeu,-joueur);
+	
+
 	return rand()%100;
 }
 
@@ -573,11 +558,11 @@ void f_IA(int joueur)
 		exit (1);
 	}
 	
-	if(joueur==1){
-		f_max(plateauDeJeu,joueur,suite,0);
-	}else{
-		f_min(plateauDeJeu,joueur,suite,0);
-	}
+	// if(joueur==1){
+		f_max(plateauDeJeu,joueur,suite,0);	
+	// }else{
+	// 	f_min(plateauDeJeu,joueur,suite,0);
+	// }
 	f_bouge_piece(plateauDeJeu,suite->curX,suite->curY,suite->nextX,suite->nextY,joueur);
 	free(suite);
 	// sleep(1);
