@@ -7,7 +7,7 @@
 
 #define NB_LIGNES 10
 #define NB_COLONNES 10
-#define INFINI 10000
+#define INFINI 10000000
 #define PROFONDEUR 3
 int node = 0;
 int profondeur = 0;
@@ -417,75 +417,82 @@ int f_valeur(Pion* jeu, int joueur)
 
 
 int f_eval(Pion* jeu, int joueur){
-    // double score_joueur = 0;
-    // double score_adversaire = 0;
-    
-    // for(int i = 0; i < NB_LIGNES; i++) {
-    //     for(int j = 0; j < NB_COLONNES; j++) {
-    //         int distance;
-    //         double score_position;
-            
-    //         if(jeu[i*NB_COLONNES+j].couleur == joueur) {
-    //             distance = (joueur == 1) ? i : (NB_LIGNES - 1 - i);
-    //             score_position = pow(0.5, distance); // reste pow()
-    //             score_joueur += score_position * jeu[i*NB_COLONNES+j].valeur;
-    //         }
-    //         else if(jeu[i*NB_COLONNES+j].couleur == -joueur) {
-    //             distance = (joueur == 1) ? (NB_LIGNES - 1 - i) : i;
-    //             score_position = pow(0.5, distance);
-    //             score_adversaire += score_position * jeu[i*NB_COLONNES+j].valeur;
-    //         }
-    //     }
-    // }
-    
-    // return (int)((score_joueur - score_adversaire) * 1000);
-
-	int score = 0;
+    int score = 0;
     int adversaire = -joueur;
     int i, j;
-	int densite_pion;
 
-    const int poids_materiel = 10;
-    const int poids_avancement = 5; 
-    const int poids_menace = 5;
-    const int poids_mobilite = 1;
-    const int controle_centre = 1;
-	if(f_gagnant(jeu, joueur) == joueur){
-		return INFINI;
-	}
-	if(f_gagnant(jeu, joueur) == -joueur){
-		return -INFINI;
-	}
+    const int poids_materiel = 150;
+    const int poids_avancement = 10; 
+    const int poids_mobilite = 0;
+    const int controle_centre = -5;
+    const int poids_defense_ligne = 50;      // Défense de la ligne de base
+    const int poids_menace_adverse = 100;     // Pénalité pour pions adverses avancés
+    const int poids_protection = 100;          // Bonus pour pions protégés
+    const int poids_blocage = 50;            // Bonus pour bloquer l'adversaire
+    
+    // Vérification victoire/défaite
+    if(f_gagnant(jeu, joueur) == joueur){
+        return INFINI;
+    }
+    if(f_gagnant(jeu, joueur) == -joueur){
+        return -INFINI;
+    }
 
     for (i = 0; i < NB_LIGNES; i++){
         for (j = 0; j < NB_COLONNES; j++){
             Pion p = jeu[i * NB_COLONNES + j];
+            
             if (p.couleur == joueur){
                 // Valeur matérielle du pion
                 score += p.valeur * poids_materiel;
 
-                // Bonus pour l'avancement vers le camp adverse
-                int advancement = (joueur == 1) ? (i) : (NB_LIGNES - 1 - i);
-                if (advancement > 0){
-                    score += poids_avancement * (1 + advancement); 
-                    score += (advancement * poids_avancement);    
+                // Avancement offensif
+                int avancement = (joueur == 1) ? (i) : (NB_LIGNES - 1 - i);
+                if (avancement > 0){
+                    score += poids_avancement * (1 + avancement); 
+                    score += (avancement * poids_avancement);    
                 }
+
+                // DEFENSE : Bonus pour garder des pions sur la ligne de base
+                int distance_from_base = (joueur == 1) ? i : (NB_LIGNES - 1 - i);
+                if (distance_from_base <= 2) {  // 3 premières lignes
+                    score += poids_defense_ligne * (3 - distance_from_base);
+                }
+
+                // PROTECTION : Bonus si le pion est entouré d'alliés
+                int voisinage = 0;
+                for (int di = -1; di <= 1; di++){
+                    for (int dj = -1; dj <= 1; dj++){
+                        if (di == 0 && dj == 0) continue;
+                        int ni = i + di;
+                        int nj = j + dj;
+                        if (ni >= 0 && ni < NB_LIGNES && nj >= 0 && nj < NB_COLONNES){
+                            if (jeu[ni * NB_COLONNES + nj].couleur == joueur){
+                                voisinage++;
+                            }
+                        }
+                    }
+                }
+				if (voisinage > 0){
+                	score += voisinage * poids_protection;
+				}else{
+					score -=  poids_protection/2;
+				}
 
                 // Contrôle du centre
                 if (i >= NB_LIGNES / 3 && i <= 2 * NB_LIGNES / 3 &&
                     j >= NB_COLONNES / 3 && j <= 2 * NB_COLONNES / 3){
-                    score += controle_centre;
+                    score += controle_centre * controle_centre;
                 }
 
+                // Mobilité
                 int mobilite = 0;
                 for (int di = -1; di <= 1; di++){
                     for (int dj = -1; dj <= 1; dj++){
-                        if (di == 0 && dj == 0)
-                            continue;
+                        if (di == 0 && dj == 0) continue;
                         int si = i + di;
                         int sj = j + dj;
-                        if (si >= 0 && si < NB_LIGNES &&
-                            sj >= 0 && sj < NB_COLONNES){
+                        if (si >= 0 && si < NB_LIGNES && sj >= 0 && sj < NB_COLONNES){
                             if (f_test_mouvement(jeu, i, j, si, sj, joueur) == 0){
                                 mobilite++;
                             }
@@ -497,27 +504,47 @@ int f_eval(Pion* jeu, int joueur){
             else if (p.couleur == adversaire){
                 score -= p.valeur * poids_materiel;
 
-                int advancement = (adversaire == 1) ? (i) : (NB_LIGNES - 1 - i);
-                if (advancement > 0){
-                    score -= poids_avancement * (1 + advancement);
-                    score -= (advancement * poids_avancement);
+                int avancement = (adversaire == 1) ? (i) : (NB_LIGNES - 1 - i);
+                
+                // MENACE ADVERSE : Pénalité exponentielle pour pions adverses avancés
+                if (avancement > 0){
+                    score -= poids_avancement * (1 + avancement);
+                    score -= (avancement * poids_avancement);
+                    
+                    // Pénalité CRITIQUE si l'adversaire est proche de notre ligne
+                    if (avancement >= NB_LIGNES - 3) {  // 3 dernières lignes
+                        int danger_level = avancement - (NB_LIGNES - 4);
+                        score -= poids_menace_adverse * danger_level * danger_level * p.valeur;
+                    }
+                }
+
+                // BLOCAGE : Vérifier si on peut bloquer ce pion adverse
+                for (int di = -1; di <= 1; di++){
+                    for (int dj = -1; dj <= 1; dj++){
+                        if (di == 0 && dj == 0) continue;
+                        int ni = i + di;
+                        int nj = j + dj;
+                        if (ni >= 0 && ni < NB_LIGNES && nj >= 0 && nj < NB_COLONNES){
+                            // Si un de nos pions peut attaquer ce pion adverse
+                            if (jeu[ni * NB_COLONNES + nj].couleur == joueur){
+                                score += poids_blocage;
+                            }
+                        }
+                    }
                 }
 
                 if (i >= NB_LIGNES / 3 && i <= 2 * NB_LIGNES / 3 &&
                     j >= NB_COLONNES / 3 && j <= 2 * NB_COLONNES / 3){
-                    score -= controle_centre;
+                    score -= controle_centre * controle_centre;
                 }
 
                 int mobilite = 0;
                 for (int di = -1; di <= 1; di++){
-                    for (int dj = -1; dj <= 1; dj++)
-                    {
-                        if (di == 0 && dj == 0)
-                            continue;
+                    for (int dj = -1; dj <= 1; dj++){
+                        if (di == 0 && dj == 0) continue;
                         int si = i + di;
                         int sj = j + dj;
-                        if (si >= 0 && si < NB_LIGNES &&
-                            sj >= 0 && sj < NB_COLONNES){
+                        if (si >= 0 && si < NB_LIGNES && sj >= 0 && sj < NB_COLONNES){
                             if (f_test_mouvement(jeu, i, j, si, sj, adversaire) == 0){
                                 mobilite++;
                             }
@@ -527,12 +554,10 @@ int f_eval(Pion* jeu, int joueur){
                 score -= mobilite * poids_mobilite;
             }
         }
-
     }
 
     return score;
 }
-
 
 void f_copie_plateau(Pion* source, Pion* destination)
 {
@@ -564,93 +589,6 @@ Pion* f_raz_plateau()
 	return jeu;	
 }
 
-// int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta){
-
-// 	if(profondeur==PROFONDEUR){
-// 		return f_eval(plateau,joueur);
-// 	}
-// 	int val = INFINI;
-	
-// 	for (int i = 0; i < NB_LIGNES; i++) {
-// 		for (int j = 0; j < NB_COLONNES; j++) {
-
-// 			if (plateau[i * NB_COLONNES + j].couleur == joueur) {
-// 				for (int si = -1; si <= 1; si++) {
-// 					for (int sj = -1; sj <= 1; sj++) {
-// 						if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-// 							Pion sous_plateau[NB_LIGNES * NB_COLONNES];
-// 							f_copie_plateau(plateau,sous_plateau);
-// 							f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-// 							int score = f_max(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
-
-// 							if (score < val){
-// 								val = score;
-// 								if (profondeur==0){
-// 									suite->curX = i;
-// 									suite->curY = j;
-// 									suite->nextX = i + si;
-// 									suite->nextY = j + sj;
-// 									suite->couleur = joueur;
-// 									suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-// 								}
-// 							}
-// 							if(val >= *beta){
-//                                 return val;
-//                             }
-//                             *alpha = (val > *alpha)?val:*alpha;
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-
-//     return val;
-// }
-
-// int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur,int * alpha, int * beta){  
-
-//         if(profondeur==PROFONDEUR){
-//             return f_eval(plateau,joueur);
-//         }
-//         int val = -INFINI;
-	
-//         for (int i = 0; i < NB_LIGNES; i++) {
-//             for (int j = 0; j < NB_COLONNES; j++) {
-//                 if (plateau[i * NB_COLONNES + j].couleur == joueur) {
-//                     for (int si = -1; si <= 1; si++) {
-//                         for (int sj = -1; sj <= 1; sj++) {
-//                             if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-//                                 Pion sous_plateau[NB_LIGNES * NB_COLONNES];
-//                                 f_copie_plateau(plateau,sous_plateau);
-//                                 f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-//                                 int score = f_min(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
-
-//                                 if (score > val){
-//                                     val = score;
-//                                     if (profondeur==0){
-//                                         suite->curX = i;
-//                                         suite->curY = j;
-//                                         suite->nextX = i + si;
-//                                         suite->nextY = j + sj;
-//                                         suite->couleur = joueur;
-//                                         suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-//                                     }
-//                                     if(*alpha >= val){
-//                                         return val;
-//                                     }
-//                                     *beta = (val < *beta)?val:*beta;
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     return val;
-
-// }
-
 int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, int *beta){
     node++;
 
@@ -664,35 +602,35 @@ int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, i
             if (plateau[i * NB_COLONNES + j].couleur == joueur) {
                 for (int si = -1; si <= 1; si++) {
                     for (int sj = -1; sj <= 1; sj++) {
-						if(si != 0 && sj != 0){
-							if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-                            Pion sous_plateau[NB_LIGNES * NB_COLONNES];
-                            f_copie_plateau(plateau, sous_plateau);
-                            f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-                            int score = f_max(sous_plateau, -joueur, suite, profondeur + 1, alpha, beta);
+							if(!(si == 0 && sj == 0)){
+								if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+								Pion sous_plateau[NB_LIGNES * NB_COLONNES];
+								f_copie_plateau(plateau, sous_plateau);
+								f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+								int score = f_max(sous_plateau, -joueur, suite, profondeur + 1, alpha, beta);
 
-                            if (score < val) {
-                                val = score;
-                                if (profondeur == 0) {
-                                    suite->curX = i;
-                                    suite->curY = j;
-                                    suite->nextX = i + si;
-                                    suite->nextY = j + sj;
-                                    suite->couleur = joueur;
-                                    suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-                                }
-                            }
-                            if(val <= *alpha){
-                                return val;
-                            }
-                            *beta = (val < *beta) ? val : *beta;
-                        }}
+								if (score < val) {
+									val = score;
+									if (profondeur == 0) {
+										suite->curX = i;
+										suite->curY = j;
+										suite->nextX = i + si;
+										suite->nextY = j + sj;
+										suite->couleur = joueur;
+										suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+									}
+								}
+								if(val <= *alpha){
+									return val;
+								}
+								*beta = (val < *beta) ? val : *beta;
+							}
+						}
                     }
                 }
             }
         }
     }
-
     return val;
 }
 
@@ -709,34 +647,36 @@ int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, i
             if (plateau[i * NB_COLONNES + j].couleur == joueur) {
                 for (int si = -1; si <= 1; si++) {
                     for (int sj = -1; sj <= 1; sj++) {
-                        if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-                            Pion sous_plateau[NB_LIGNES * NB_COLONNES];
-                            f_copie_plateau(plateau, sous_plateau);
-                            f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-                            int score = f_min(sous_plateau, -joueur, suite, profondeur + 1, alpha, beta);
+						if(!(si == 0 && sj == 0)){
+							if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+								Pion sous_plateau[NB_LIGNES * NB_COLONNES];
+								f_copie_plateau(plateau, sous_plateau);
+								f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+								int score = f_min(sous_plateau, -joueur, suite, profondeur + 1, alpha, beta);
 
-                            if (score > val) {
-                                val = score;
-                                if (profondeur == 0) {
-                                    suite->curX = i;
-                                    suite->curY = j;
-                                    suite->nextX = i + si;
-                                    suite->nextY = j + sj;
-                                    suite->couleur = joueur;
-                                    suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-                                }
-                            }
-                            if(val >= *beta){
-                                return val;
-                            }
-                            *alpha = (val > *alpha) ? val : *alpha;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return val;
+								if (score > val) {
+									val = score;
+									if (profondeur == 0) {
+										suite->curX = i;
+										suite->curY = j;
+										suite->nextX = i + si;
+										suite->nextY = j + sj;
+										suite->couleur = joueur;
+										suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+									}
+								}
+								if(val >= *beta){
+									return val;
+								}
+								*alpha = (val > *alpha) ? val : *alpha;
+							}
+	                    }
+                	}
+            	}
+        	}
+    	}
+	}
+	return val;
 }
 /**
  * Calcule et joue le meilleur cout
@@ -757,8 +697,9 @@ void f_IA(int joueur)
 	
 	f_max(plateauDeJeu,joueur,suite,0,&alpha,&beta);
 	f_bouge_piece(plateauDeJeu,suite->curX,suite->curY,suite->nextX,suite->nextY,joueur);
+	printf(" joueur %d a joue (%d,%d) vers (%d,%d)\n", joueur, suite->curX, suite->curY, suite->nextX, suite->nextY);
 	free(suite);
-	
+	sleep(1);
 
     #ifdef DEBUG
         printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
@@ -821,6 +762,7 @@ int main(int argv, char *argc[]){
 	start = clock();
 	while (!fin)
 	{
+		printf("coups %d\n", profondeur);
 		f_affiche_plateau(plateauDeJeu);
 		if(mode==1)
 		{
