@@ -3,12 +3,14 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <math.h>
 
 #define NB_LIGNES 10
 #define NB_COLONNES 10
 #define INFINI 10000
 #define PROFONDEUR 3
+int node = 0;
+int profondeur = 0;
 
 // #define DEBUG
 
@@ -31,10 +33,11 @@ Pion *plateauDeJeu;
 void f_affiche_plateau(Pion *plateau);
 int f_convert_char2int(char c);
 char f_convert_int2char(int i);
+void f_copie_plateau(Pion *source, Pion *destination);
+Pion *f_raz_plateau();
 int f_eval(Pion *plateau, int joueur);
 int f_min(Pion *plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta);
 int f_max(Pion *plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta);
-Pion * f_copy_plateau(Pion *plateau);	
 
 
 int f_convert_char2int(char c)
@@ -412,34 +415,125 @@ int f_valeur(Pion* jeu, int joueur)
 	return valeur;
 }
 
-//fonction d'évaluation
-int f_eval(Pion* jeu,int joueur)
-{
-		//densite des pions du joueur
-		//la moyenne de la distance entre les points et la promotion
-		//
-		// int distance=0;
-		// int nb_pion=0;
-		// for(int i=0;i<NB_LIGNES;i++)
-		// {
-		// 	for(int j=0;j<NB_COLONNES;j++)
-		// 	{
-		// 		if(jeu[i*NB_COLONNES+j].couleur==joueur)
-		// 		{
-		// 			nb_pion++;
-		// 			if(jeu[i*NB_COLONNES+j].couleur==1){
-		// 				distance+=i;
-		// 			}else{
-		// 				distance+=NB_LIGNES-1-i;
-		// 			}
-		// 		}
-		// 	}
-		// }
-		// return (NB_LIGNES -distance/nb_pion);
-	return rand()%100;
+
+int f_eval(Pion* jeu, int joueur){
+    // double score_joueur = 0;
+    // double score_adversaire = 0;
+    
+    // for(int i = 0; i < NB_LIGNES; i++) {
+    //     for(int j = 0; j < NB_COLONNES; j++) {
+    //         int distance;
+    //         double score_position;
+            
+    //         if(jeu[i*NB_COLONNES+j].couleur == joueur) {
+    //             distance = (joueur == 1) ? i : (NB_LIGNES - 1 - i);
+    //             score_position = pow(0.5, distance); // reste pow()
+    //             score_joueur += score_position * jeu[i*NB_COLONNES+j].valeur;
+    //         }
+    //         else if(jeu[i*NB_COLONNES+j].couleur == -joueur) {
+    //             distance = (joueur == 1) ? (NB_LIGNES - 1 - i) : i;
+    //             score_position = pow(0.5, distance);
+    //             score_adversaire += score_position * jeu[i*NB_COLONNES+j].valeur;
+    //         }
+    //     }
+    // }
+    
+    // return (int)((score_joueur - score_adversaire) * 1000);
+
+	int score = 0;
+    int adversaire = -joueur;
+    int i, j;
+	int densite_pion;
+
+    const int poids_materiel = 10;
+    const int poids_avancement = 5; 
+    const int poids_menace = 5;
+    const int poids_mobilite = 1;
+    const int controle_centre = 1;
+	if(f_gagnant(jeu, joueur) == joueur){
+		return INFINI;
+	}
+	if(f_gagnant(jeu, joueur) == -joueur){
+		return -INFINI;
+	}
+
+    for (i = 0; i < NB_LIGNES; i++){
+        for (j = 0; j < NB_COLONNES; j++){
+            Pion p = jeu[i * NB_COLONNES + j];
+            if (p.couleur == joueur){
+                // Valeur matérielle du pion
+                score += p.valeur * poids_materiel;
+
+                // Bonus pour l'avancement vers le camp adverse
+                int advancement = (joueur == 1) ? (i) : (NB_LIGNES - 1 - i);
+                if (advancement > 0){
+                    score += poids_avancement * (1 + advancement); 
+                    score += (advancement * poids_avancement);    
+                }
+
+                // Contrôle du centre
+                if (i >= NB_LIGNES / 3 && i <= 2 * NB_LIGNES / 3 &&
+                    j >= NB_COLONNES / 3 && j <= 2 * NB_COLONNES / 3){
+                    score += controle_centre;
+                }
+
+                int mobilite = 0;
+                for (int di = -1; di <= 1; di++){
+                    for (int dj = -1; dj <= 1; dj++){
+                        if (di == 0 && dj == 0)
+                            continue;
+                        int si = i + di;
+                        int sj = j + dj;
+                        if (si >= 0 && si < NB_LIGNES &&
+                            sj >= 0 && sj < NB_COLONNES){
+                            if (f_test_mouvement(jeu, i, j, si, sj, joueur) == 0){
+                                mobilite++;
+                            }
+                        }
+                    }
+                }
+                score += mobilite * poids_mobilite;
+            }
+            else if (p.couleur == adversaire){
+                score -= p.valeur * poids_materiel;
+
+                int advancement = (adversaire == 1) ? (i) : (NB_LIGNES - 1 - i);
+                if (advancement > 0){
+                    score -= poids_avancement * (1 + advancement);
+                    score -= (advancement * poids_avancement);
+                }
+
+                if (i >= NB_LIGNES / 3 && i <= 2 * NB_LIGNES / 3 &&
+                    j >= NB_COLONNES / 3 && j <= 2 * NB_COLONNES / 3){
+                    score -= controle_centre;
+                }
+
+                int mobilite = 0;
+                for (int di = -1; di <= 1; di++){
+                    for (int dj = -1; dj <= 1; dj++)
+                    {
+                        if (di == 0 && dj == 0)
+                            continue;
+                        int si = i + di;
+                        int sj = j + dj;
+                        if (si >= 0 && si < NB_LIGNES &&
+                            sj >= 0 && sj < NB_COLONNES){
+                            if (f_test_mouvement(jeu, i, j, si, sj, adversaire) == 0){
+                                mobilite++;
+                            }
+                        }
+                    }
+                }
+                score -= mobilite * poids_mobilite;
+            }
+        }
+
+    }
+
+    return score;
 }
 
-//copie du plateau
+
 void f_copie_plateau(Pion* source, Pion* destination)
 {
 	int i, j;
@@ -469,103 +563,180 @@ Pion* f_raz_plateau()
 	}
 	return jeu;	
 }
-Pion* f_copy_plateau(Pion* plateau){
-	Pion* copie = NULL;
-	int i, j;
-	copie = (Pion *) malloc(NB_LIGNES * NB_COLONNES * sizeof (Pion));
-	for (i = 0; i < NB_LIGNES; i++){
-		for (j = 0; j < NB_COLONNES; j++){
-			copie[i * NB_COLONNES + j].couleur = plateau[i * NB_COLONNES + j].couleur;
-			copie[i * NB_COLONNES + j].valeur = plateau[i * NB_COLONNES + j].valeur;
-		}
-	}
-	return copie;	
-}
-int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta){
 
-	if(profondeur==PROFONDEUR){
-		return f_eval(plateau,joueur);
-	}
-	int val = INFINI;
+// int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta){
+
+// 	if(profondeur==PROFONDEUR){
+// 		return f_eval(plateau,joueur);
+// 	}
+// 	int val = INFINI;
 	
-	for (int i = 0; i < NB_LIGNES; i++) {
-		for (int j = 0; j < NB_COLONNES; j++) {
+// 	for (int i = 0; i < NB_LIGNES; i++) {
+// 		for (int j = 0; j < NB_COLONNES; j++) {
 
-			if (plateau[i * NB_COLONNES + j].couleur == joueur) {
-				for (int si = -1; si <= 1; si++) {
-					for (int sj = -1; sj <= 1; sj++) {
-						if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-							Pion* sous_plateau = f_copy_plateau(plateau);
-							f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-							int score = f_max(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
+// 			if (plateau[i * NB_COLONNES + j].couleur == joueur) {
+// 				for (int si = -1; si <= 1; si++) {
+// 					for (int sj = -1; sj <= 1; sj++) {
+// 						if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+// 							Pion sous_plateau[NB_LIGNES * NB_COLONNES];
+// 							f_copie_plateau(plateau,sous_plateau);
+// 							f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+// 							int score = f_max(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
 
-							if (score < val){
-								val = score;
-								if (profondeur==0){
-									suite->curX = i;
-									suite->curY = j;
-									suite->nextX = i + si;
-									suite->nextY = j + sj;
-									suite->couleur = joueur;
-									suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-								}
-							}
-							free(sous_plateau);
-                            if(val >= *beta){
+// 							if (score < val){
+// 								val = score;
+// 								if (profondeur==0){
+// 									suite->curX = i;
+// 									suite->curY = j;
+// 									suite->nextX = i + si;
+// 									suite->nextY = j + sj;
+// 									suite->couleur = joueur;
+// 									suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+// 								}
+// 							}
+// 							if(val >= *beta){
+//                                 return val;
+//                             }
+//                             *alpha = (val > *alpha)?val:*alpha;
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+
+//     return val;
+// }
+
+// int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur,int * alpha, int * beta){  
+
+//         if(profondeur==PROFONDEUR){
+//             return f_eval(plateau,joueur);
+//         }
+//         int val = -INFINI;
+	
+//         for (int i = 0; i < NB_LIGNES; i++) {
+//             for (int j = 0; j < NB_COLONNES; j++) {
+//                 if (plateau[i * NB_COLONNES + j].couleur == joueur) {
+//                     for (int si = -1; si <= 1; si++) {
+//                         for (int sj = -1; sj <= 1; sj++) {
+//                             if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+//                                 Pion sous_plateau[NB_LIGNES * NB_COLONNES];
+//                                 f_copie_plateau(plateau,sous_plateau);
+//                                 f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+//                                 int score = f_min(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
+
+//                                 if (score > val){
+//                                     val = score;
+//                                     if (profondeur==0){
+//                                         suite->curX = i;
+//                                         suite->curY = j;
+//                                         suite->nextX = i + si;
+//                                         suite->nextY = j + sj;
+//                                         suite->couleur = joueur;
+//                                         suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+//                                     }
+//                                     if(*alpha >= val){
+//                                         return val;
+//                                     }
+//                                     *beta = (val < *beta)?val:*beta;
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     return val;
+
+// }
+
+int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, int *beta){
+    node++;
+
+    if(profondeur == PROFONDEUR){
+        return f_eval(plateau, joueur);
+    }
+    int val = INFINI;
+    
+    for (int i = 0; i < NB_LIGNES; i++) {
+        for (int j = 0; j < NB_COLONNES; j++) {
+            if (plateau[i * NB_COLONNES + j].couleur == joueur) {
+                for (int si = -1; si <= 1; si++) {
+                    for (int sj = -1; sj <= 1; sj++) {
+						if(si != 0 && sj != 0){
+							if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+                            Pion sous_plateau[NB_LIGNES * NB_COLONNES];
+                            f_copie_plateau(plateau, sous_plateau);
+                            f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+                            int score = f_max(sous_plateau, -joueur, suite, profondeur + 1, alpha, beta);
+
+                            if (score < val) {
+                                val = score;
+                                if (profondeur == 0) {
+                                    suite->curX = i;
+                                    suite->curY = j;
+                                    suite->nextX = i + si;
+                                    suite->nextY = j + sj;
+                                    suite->couleur = joueur;
+                                    suite->valeur = plateau[i * NB_COLONNES + j].valeur;
+                                }
+                            }
+                            if(val <= *alpha){
                                 return val;
                             }
-                            *alpha = (val > *alpha)?val:*alpha;
-						}
-					}
-				}
-			}
-		}
-	}
+                            *beta = (val < *beta) ? val : *beta;
+                        }}
+                    }
+                }
+            }
+        }
+    }
 
     return val;
 }
 
-int f_max(Pion* plateau, int joueur,Suite *suite ,int profondeur,int * alpha, int * beta){  
+int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, int *beta){  
+    node++;
 
-        if(profondeur==PROFONDEUR){
-            return f_eval(plateau,joueur);
-        }
-        int val = -INFINI;
-	
-        for (int i = 0; i < NB_LIGNES; i++) {
-            for (int j = 0; j < NB_COLONNES; j++) {
-                if (plateau[i * NB_COLONNES + j].couleur == joueur) {
-                    for (int si = -1; si <= 1; si++) {
-                        for (int sj = -1; sj <= 1; sj++) {
-                            if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
-                                Pion* sous_plateau = f_copy_plateau(plateau);
-                                f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
-                                int score = f_min(sous_plateau, -joueur,suite, profondeur + 1,alpha,beta);
+    if(profondeur == PROFONDEUR){
+        return f_eval(plateau, joueur);
+    }
+    int val = -INFINI;
 
-                                if (score > val){
-                                    val = score;
-                                    if (profondeur==0){
-                                        suite->curX = i;
-                                        suite->curY = j;
-                                        suite->nextX = i + si;
-                                        suite->nextY = j + sj;
-                                        suite->couleur = joueur;
-                                        suite->valeur = plateau[i * NB_COLONNES + j].valeur;
-                                    }
-                                    free(sous_plateau);
-                                    if(*alpha >= val){
-                                        return val;
-                                    }
-                                    *beta = (val < *beta)?val:*beta;
+    for (int i = 0; i < NB_LIGNES; i++) {
+        for (int j = 0; j < NB_COLONNES; j++) {
+            if (plateau[i * NB_COLONNES + j].couleur == joueur) {
+                for (int si = -1; si <= 1; si++) {
+                    for (int sj = -1; sj <= 1; sj++) {
+                        if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+                            Pion sous_plateau[NB_LIGNES * NB_COLONNES];
+                            f_copie_plateau(plateau, sous_plateau);
+                            f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
+                            int score = f_min(sous_plateau, -joueur, suite, profondeur + 1, alpha, beta);
+
+                            if (score > val) {
+                                val = score;
+                                if (profondeur == 0) {
+                                    suite->curX = i;
+                                    suite->curY = j;
+                                    suite->nextX = i + si;
+                                    suite->nextY = j + sj;
+                                    suite->couleur = joueur;
+                                    suite->valeur = plateau[i * NB_COLONNES + j].valeur;
                                 }
                             }
+                            if(val >= *beta){
+                                return val;
+                            }
+                            *alpha = (val > *alpha) ? val : *alpha;
                         }
                     }
                 }
             }
         }
+    }
     return val;
-
 }
 /**
  * Calcule et joue le meilleur cout
@@ -584,14 +755,9 @@ void f_IA(int joueur)
 		exit (1);
 	}
 	
-	if(joueur==1){
-		f_max(plateauDeJeu,joueur,suite,0,&alpha,&beta);
-	}else{
-		f_min(plateauDeJeu,joueur,suite,0,&alpha,&beta);
-	}
+	f_max(plateauDeJeu,joueur,suite,0,&alpha,&beta);
 	f_bouge_piece(plateauDeJeu,suite->curX,suite->curY,suite->nextX,suite->nextY,joueur);
 	free(suite);
-	// sleep(1);
 	
 
     #ifdef DEBUG
@@ -651,6 +817,8 @@ int main(int argv, char *argc[]){
 	scanf("%d",&mode);
 
 	plateauDeJeu = f_init_plateau();
+	clock_t start, end;
+	start = clock();
 	while (!fin)
 	{
 		f_affiche_plateau(plateauDeJeu);
@@ -687,8 +855,12 @@ int main(int argv, char *argc[]){
 			}
 		}
 		joueur = -joueur;
+		profondeur++;
 	}
-
+	end = clock();
+	printf("Temps de jeu: %f\n", (double)(end - start) / CLOCKS_PER_SEC);
+	printf("Nombre de noeuds: %d\n", node);
+	printf("nombre de coup: %d\n", profondeur);
     #ifdef DEBUG
         printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
     #endif
