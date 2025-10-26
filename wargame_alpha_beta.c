@@ -10,7 +10,7 @@
 #define INFINI 10000000
 #define PROFONDEUR 3
 int node = 0;
-int profondeur = 0;
+int nbrCoups = 0;
 
 // #define DEBUG
 
@@ -425,7 +425,7 @@ int f_eval(Pion* jeu, int joueur){
     const int poids_avancement = 10; 
     const int poids_mobilite = 0;
     const int controle_centre = -5;
-    const int poids_defense_ligne = 50;      // Défense de la ligne de base
+    // const int poids_defense_ligne = 50;      // Défense de la ligne de base
     const int poids_menace_adverse = 100;     // Pénalité pour pions adverses avancés
     const int poids_protection = 100;          // Bonus pour pions protégés
     const int poids_blocage = 50;            // Bonus pour bloquer l'adversaire
@@ -454,10 +454,10 @@ int f_eval(Pion* jeu, int joueur){
                 }
 
                 // DEFENSE : Bonus pour garder des pions sur la ligne de base
-                int distance_from_base = (joueur == 1) ? i : (NB_LIGNES - 1 - i);
-                if (distance_from_base <= 2) {  // 3 premières lignes
-                    score += poids_defense_ligne * (3 - distance_from_base);
-                }
+                // int distance_from_base = (joueur == 1) ? i : (NB_LIGNES - 1 - i);
+                // if (distance_from_base <= 2) {  // 3 premières lignes
+                //     score += poids_defense_ligne * (3 - distance_from_base);
+                // }
 
                 // PROTECTION : Bonus si le pion est entouré d'alliés
                 int voisinage = 0;
@@ -699,7 +699,6 @@ void f_IA(int joueur)
 	f_bouge_piece(plateauDeJeu,suite->curX,suite->curY,suite->nextX,suite->nextY,joueur);
 	printf(" joueur %d a joue (%d,%d) vers (%d,%d)\n", joueur, suite->curX, suite->curY, suite->nextX, suite->nextY);
 	free(suite);
-	sleep(1);
 
     #ifdef DEBUG
         printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
@@ -750,7 +749,7 @@ void f_humain(int joueur){
 #endif
 }
 
-int main(int argv, char *argc[]){
+int main(){
 	srand(time(NULL));
 
 	int fin = 0,mode=0 , ret, joueur = 1;
@@ -762,7 +761,7 @@ int main(int argv, char *argc[]){
 	start = clock();
 	while (!fin)
 	{
-		printf("coups %d\n", profondeur);
+		printf("coups %d\n", nbrCoups);
 		f_affiche_plateau(plateauDeJeu);
 		if(mode==1)
 		{
@@ -797,12 +796,12 @@ int main(int argv, char *argc[]){
 			}
 		}
 		joueur = -joueur;
-		profondeur++;
+		nbrCoups++;
 	}
 	end = clock();
 	printf("Temps de jeu: %f\n", (double)(end - start) / CLOCKS_PER_SEC);
 	printf("Nombre de noeuds: %d\n", node);
-	printf("nombre de coup: %d\n", profondeur);
+	printf("nombre de coup: %d\n", nbrCoups);
     #ifdef DEBUG
         printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
     #endif
