@@ -43,4 +43,9 @@ int eval_test_victoire(Pion *plateau);
 /* --- Fonction de percée / danger immédiat --- */
 int eval_percee(Pion *plateau, int joueur);
 
+/* --- Fonctions de protection des pièces --- */
+int eval_protection_piece(Pion *plateau, int l, int c);
+double eval_protection_moyenne(Pion *plateau, int joueur);
+int eval_protection_entiere(Pion *plateau, int joueur);
+
 #endif /* EVAL_H */
