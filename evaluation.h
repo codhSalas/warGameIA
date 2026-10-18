@@ -52,4 +52,7 @@ int eval_protection_entiere(Pion *plateau, int joueur);
 double eval_cohesion(Pion *plateau, int joueur);
 int eval_cohesion_entiere(Pion *plateau, int joueur);
 
+/* --- Fonction de contrôle du centre --- */
+int eval_controle_centre(Pion *plateau, int joueur);
+
 #endif /* EVAL_H */
