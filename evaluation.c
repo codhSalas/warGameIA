@@ -386,3 +386,22 @@ int eval_protection_entiere(Pion *plateau, int joueur)
 {
 	return (int)round(eval_protection_moyenne(plateau, joueur));
 }
+
+/* ========================================================================= */
+/*  COHÉSION (INVERSE DE LA DISPERSION SPATIALE)                             */
+/* ========================================================================= */
+
+double eval_cohesion(Pion *plateau, int joueur)
+{
+	double dispersion = eval_dispersion(plateau, joueur);
+
+	if (dispersion > 0.0 && dispersion < 8.0)
+		return (8.0 - dispersion);
+
+	return 0.0;
+}
+
+int eval_cohesion_entiere(Pion *plateau, int joueur)
+{
+	return (int)round(eval_cohesion(plateau, joueur));
+}

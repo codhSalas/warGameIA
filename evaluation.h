@@ -48,4 +48,8 @@ int eval_protection_piece(Pion *plateau, int l, int c);
 double eval_protection_moyenne(Pion *plateau, int joueur);
 int eval_protection_entiere(Pion *plateau, int joueur);
 
+/* --- Fonctions de cohésion (regroupement des troupes) --- */
+double eval_cohesion(Pion *plateau, int joueur);
+int eval_cohesion_entiere(Pion *plateau, int joueur);
+
 #endif /* EVAL_H */
