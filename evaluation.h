@@ -32,6 +32,11 @@ int eval_distance_min_but(Pion *plateau, int joueur);
 int eval_avancement_joueur(Pion *plateau, int joueur);
 int eval_score_manhattan(Pion *plateau, int joueur, int poids_avancement, int poids_danger);
 
+/* --- Fonctions de valeur matérielle & cohésion --- */
+int eval_valeur(Pion *plateau, int joueur);
+int eval_nb_pions(Pion *plateau, int joueur);
+
+
 /* --- Test de victoire sur plateau simulé --- */
 int eval_test_victoire(Pion *plateau);
 
