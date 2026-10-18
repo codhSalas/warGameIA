@@ -1,20 +1,27 @@
 CC = gcc
-CFLAGS_DEBUG = -O0 -g -Wall -Wextra -pedantic
-LDFLAGS = -flto
+CFLAGS = -O0 -g -Wall -Wextra -pedantic
+LDFLAGS = -lm
+
 TARGETS = wargame_min_max wargame_alpha_beta
+COMMON_OBJS = evaluation.o
 
+wargame: $(TARGETS)
 
-wargame: debug_min_max debug_alpha_beta
+all: $(TARGETS)
 
+debug_min_max: wargame_min_max
+debug_alpha_beta: wargame_alpha_beta
 
-debug_min_max: wargame_min_max.c
-	$(CC) $(CFLAGS_DEBUG) -o wargame_min_max wargame_min_max.c -lm
+wargame_min_max: wargame_min_max.o $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-debug_alpha_beta: wargame_alpha_beta.c
-	$(CC) $(CFLAGS_DEBUG) -o wargame_alpha_beta wargame_alpha_beta.c -lm
+wargame_alpha_beta: wargame_alpha_beta.o $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+%.o: %.c evaluation.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGETS) wargame
-	clear
+	rm -f $(TARGETS) *.o
 
-.PHONY: clean 
+.PHONY: all wargame debug_min_max debug_alpha_beta clean
