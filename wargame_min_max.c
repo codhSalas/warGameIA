@@ -431,17 +431,28 @@ int f_eval(Pion *plateau, int joueur)
     if (gagnant == joueur)  return INFINI;
     if (gagnant == -joueur) return -INFINI;
 
-    /* 2. Matériel */
-    score += f_valeur(plateau, joueur) * 100 - f_valeur(plateau, -joueur) * 100;
+    /* 2. Poids de test */
+    const int POIDS_MAT_ALLIE  = 100;
+    const int POIDS_AV_ALLIE   = 50;
+    const int POIDS_PERC_ALLIE = 150;
+    const int POIDS_PROT_ALLIE = 20;
 
-    /* 3. Densité / Dispersion (poids modéré pour favoriser l'avancement) */
-    const int poids_densite = 5;
-    score += eval_score_densite(plateau, joueur, poids_densite);
+    const int POIDS_MAT_ADV    = 120;
+    const int POIDS_AV_ADV     = 60;
+    const int POIDS_PERC_ADV   = 200;
+    const int POIDS_PROT_ADV   = 15;
 
-    /* 4. Percée et avancement vers le camp adverse */
-    const int poids_avancement = 60;
-    const int poids_danger_percee = 2000;
-    score += eval_score_manhattan(plateau, joueur, poids_avancement, poids_danger_percee);
+    /* 3. Évaluation de NOTRE camp (Allié : Positif) */
+    score += eval_valeur(plateau, joueur) * POIDS_MAT_ALLIE;
+    score += eval_avancement_joueur(plateau, joueur) * POIDS_AV_ALLIE;
+    score += eval_percee(plateau, joueur) * POIDS_PERC_ALLIE;
+    score += eval_protection_entiere(plateau, joueur) * POIDS_PROT_ALLIE;
+
+    /* 4. Évaluation du camp ADVERSE (Ennemi : Négatif) */
+    score -= eval_valeur(plateau, -joueur) * POIDS_MAT_ADV;
+    score -= eval_avancement_joueur(plateau, -joueur) * POIDS_AV_ADV;
+    score -= eval_percee(plateau, -joueur) * POIDS_PERC_ADV;
+    score -= eval_protection_entiere(plateau, -joueur) * POIDS_PROT_ADV;
 
     return score;
 }
