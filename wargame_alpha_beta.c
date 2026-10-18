@@ -43,8 +43,8 @@ char f_convert_int2char(int i);
 void f_copie_plateau(Pion *source, Pion *destination);
 Pion *f_raz_plateau();
 int f_eval(Pion *plateau, int joueur);
-int f_min(Pion *plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta);
-int f_max(Pion *plateau, int joueur, Suite *suite , int profondeur,int * alpha, int * beta);
+int f_min(Pion *plateau, int joueur, Suite *suite , int profondeur,int alpha, int beta);
+int f_max(Pion *plateau, int joueur, Suite *suite , int profondeur,int alpha, int beta);
 
 
 int f_convert_char2int(char c)
@@ -476,11 +476,11 @@ Pion* f_raz_plateau()
 	return jeu;	
 }
 
-int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, int *beta){
+int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, int beta){
     node++;
 
     if(profondeur == PROFONDEUR){
-        return -f_eval(plateau, joueur);
+        return f_eval(plateau, joueur);
     }
     int val = INFINI;
     
@@ -507,10 +507,10 @@ int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, i
 										suite->valeur = plateau[i * NB_COLONNES + j].valeur;
 									}
 								}
-								if(val <= *alpha){
+								if(val <= alpha){
 									return val;
 								}
-								*beta = (val < *beta) ? val : *beta;
+								beta = (val < beta) ? val : beta;
 							}
 						}
                     }
@@ -521,7 +521,7 @@ int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, i
     return val;
 }
 
-int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, int *beta){  
+int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, int beta){  
     node++;
 
     if(profondeur == PROFONDEUR){
@@ -552,10 +552,10 @@ int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int *alpha, i
 										suite->valeur = plateau[i * NB_COLONNES + j].valeur;
 									}
 								}
-								if(val >= *beta){
+								if(val >= beta){
 									return val;
 								}
-								*alpha = (val > *alpha) ? val : *alpha;
+								alpha = (val > alpha) ? val : alpha;
 							}
 	                    }
                 	}
@@ -582,7 +582,7 @@ void f_IA(int joueur)
 		exit (1);
 	}
 	
-	f_max(plateauDeJeu,joueur,suite,0,&alpha,&beta);
+	f_max(plateauDeJeu,joueur,suite,0,alpha,beta);
 	f_bouge_piece(plateauDeJeu,suite->curX,suite->curY,suite->nextX,suite->nextY,joueur);
 	printf(" joueur %d a joue (%d,%d) vers (%d,%d)\n", joueur, suite->curX, suite->curY, suite->nextX, suite->nextY);
 	free(suite);

@@ -483,7 +483,7 @@ Pion* f_raz_plateau()
 int f_min(Pion* plateau, int joueur, Suite *suite , int profondeur){
 
     if(profondeur==PROFONDEUR){
-        return -f_eval(plateau,joueur);
+        return f_eval(plateau,joueur);
     }
     
     int val = INFINI;
