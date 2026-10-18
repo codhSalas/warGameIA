@@ -296,3 +296,19 @@ int eval_test_victoire(Pion *plateau)
 
 	return 0;
 }
+
+/* ========================================================================= */
+/*  PERCÉE / DANGER IMMÉDIAT (DISTANCE AU BUT)                               */
+/* ========================================================================= */
+
+int eval_percee(Pion *plateau, int joueur)
+{
+	int min_dist = eval_distance_min_but(plateau, joueur);
+
+	if (min_dist == 1)
+		return 3; 
+	else if (min_dist == 2)
+		return 1; 
+
+	return 0;
+}

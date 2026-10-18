@@ -40,4 +40,7 @@ int eval_nb_pions(Pion *plateau, int joueur);
 /* --- Test de victoire sur plateau simulé --- */
 int eval_test_victoire(Pion *plateau);
 
+/* --- Fonction de percée / danger immédiat --- */
+int eval_percee(Pion *plateau, int joueur);
+
 #endif /* EVAL_H */
