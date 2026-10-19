@@ -36,6 +36,7 @@ typedef struct suite_s
 	int valeur;
 }Suite;
 Pion *plateauDeJeu;
+int currentPlayer;
 
 void f_affiche_plateau(Pion *plateau);
 int f_convert_char2int(char c);
@@ -46,6 +47,8 @@ int f_eval(Pion *plateau, int joueur);
 int f_min(Pion *plateau, int joueur, Suite *suite , int profondeur,int alpha, int beta);
 int f_max(Pion *plateau, int joueur, Suite *suite , int profondeur,int alpha, int beta);
 
+struct poidsEval score1;
+struct poidsEval score2;
 
 int f_convert_char2int(char c)
 {
@@ -431,20 +434,13 @@ int f_eval(Pion *plateau, int joueur)
     int gagnant = eval_test_victoire(plateau);
     if (gagnant == joueur)  return INFINI;
     if (gagnant == -joueur) return -INFINI;
+	if (currentPlayer == 1) {
+		score = eval_avec_poids(plateau, joueur, &score1);
+	} else {
+		score = eval_avec_poids(plateau, joueur, &score2);
+	}
+	return score;
 
-    /* 2. Matériel */
-    score += f_valeur(plateau, joueur) * 100 - f_valeur(plateau, -joueur) * 100;
-
-    /* 3. Densité / Dispersion (poids modéré pour favoriser l'avancement) */
-    const int poids_densite = 5;
-    score += eval_score_densite(plateau, joueur, poids_densite);
-
-    /* 4. Percée et avancement vers le camp adverse */
-    const int poids_avancement = 60;
-    const int poids_danger_percee = 2000;
-    score += eval_score_manhattan(plateau, joueur, poids_avancement, poids_danger_percee);
-
-    return score;
 }
 void f_copie_plateau(Pion* source, Pion* destination)
 {
@@ -639,7 +635,12 @@ void f_humain(int joueur){
 int main(){
 	srand(time(NULL));
 
+	/* Profils des deux IA (modifiables parmi les 5 presets disponibles) */
+	score1 = POIDS_CHAMPION_EQUILIBRE;
+	score2 = POIDS_PHALANGE_BLINDEE;
+
 	int fin = 0,mode=0 , ret, joueur = 1;
+	currentPlayer = joueur;
 	printf("1 humain vs IA\n2 humain vs humain\n3 IA vs IA\n");
 	scanf("%d",&mode);
 
@@ -683,6 +684,7 @@ int main(){
 			}
 		}
 		joueur = -joueur;
+		currentPlayer = joueur;
 		nbrCoups++;
 	}
 	end = clock();

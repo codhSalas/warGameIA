@@ -17,6 +17,9 @@
 int node = 0;
 int nbCoups = 0;
 // #define DEBUG
+int currentPlayer;
+struct poidsEval score1;
+struct poidsEval score2;
 
 #ifndef PION_DEFINED
 #define PION_DEFINED
@@ -430,31 +433,13 @@ int f_eval(Pion *plateau, int joueur)
     int gagnant = eval_test_victoire(plateau);
     if (gagnant == joueur)  return INFINI;
     if (gagnant == -joueur) return -INFINI;
-
-    /* 2. Poids de test */
-    const int POIDS_MAT_ALLIE  = 100;
-    const int POIDS_AV_ALLIE   = 50;
-    const int POIDS_PERC_ALLIE = 150;
-    const int POIDS_PROT_ALLIE = 20;
-
-    const int POIDS_MAT_ADV    = 120;
-    const int POIDS_AV_ADV     = 60;
-    const int POIDS_PERC_ADV   = 200;
-    const int POIDS_PROT_ADV   = 15;
-
-    /* 3. Évaluation de NOTRE camp (Allié : Positif) */
-    score += eval_valeur(plateau, joueur) * POIDS_MAT_ALLIE;
-    score += eval_avancement_joueur(plateau, joueur) * POIDS_AV_ALLIE;
-    score += eval_percee(plateau, joueur) * POIDS_PERC_ALLIE;
-    score += eval_protection_entiere(plateau, joueur) * POIDS_PROT_ALLIE;
-
-    /* 4. Évaluation du camp ADVERSE (Ennemi : Négatif) */
-    score -= eval_valeur(plateau, -joueur) * POIDS_MAT_ADV;
-    score -= eval_avancement_joueur(plateau, -joueur) * POIDS_AV_ADV;
-    score -= eval_percee(plateau, -joueur) * POIDS_PERC_ADV;
-    score -= eval_protection_entiere(plateau, -joueur) * POIDS_PROT_ADV;
-
-    return score;
+		if (currentPlayer == 1) {
+		score = eval_avec_poids(plateau, joueur, &score1);
+	} else {
+		score = eval_avec_poids(plateau, joueur, &score2);
+	}
+	return score;
+    
 }
 
 
@@ -651,6 +636,7 @@ int main()
 	srand(time(NULL));
 	clock_t start, end;
 	int fin = 0,mode=0 , ret, joueur = 1;
+	currentPlayer = joueur;
 	printf("1 humain vs IA\n2 humain vs humain\n3 IA vs IA\n");
 	scanf("%d",&mode);
 
@@ -692,6 +678,7 @@ int main()
 			}
 		}
 		joueur = -joueur;
+		currentPlayer=joueur;
 	}
 	end = clock();
 	printf("Temps de jeu: %f\n", (double)(end - start) / CLOCKS_PER_SEC);
