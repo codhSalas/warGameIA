@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <math.h>
 #include "evaluation.h"
+#include "poids_presets.h"
 #ifndef NB_LIGNES
 #define NB_LIGNES 10
 #endif
@@ -26,6 +27,7 @@ typedef struct pion_s
 	int valeur;
 }Pion;
 #endif
+
 typedef struct suite_s
 {
 	int curX;
@@ -47,8 +49,6 @@ int f_eval(Pion *plateau, int joueur);
 int f_min(Pion *plateau, int joueur, Suite *suite , int profondeur,int alpha, int beta);
 int f_max(Pion *plateau, int joueur, Suite *suite , int profondeur,int alpha, int beta);
 
-struct poidsEval score1;
-struct poidsEval score2;
 
 int f_convert_char2int(char c)
 {
@@ -277,7 +277,7 @@ int f_gagnant()
  * 	pour laquelle la bataille a lieu
  * Renvoie le couleur du gagnant
  * */
-int f_bataille(int l, int c)
+int f_bataille(Pion *plateau, int l, int c)
 {
 	int i, j, mini, maxi, minj, maxj;
 	int somme=0;
@@ -294,10 +294,9 @@ int f_bataille(int l, int c)
 	{
 		for(j=minj; j<=maxj; j++)
 		{
-			somme += plateauDeJeu[i*NB_COLONNES+j].couleur*plateauDeJeu[i*NB_COLONNES+j].valeur;
+			somme += plateau[i*NB_COLONNES+j].couleur*plateau[i*NB_COLONNES+j].valeur;
 		}
 	}
-	// somme -= plateauDeJeu[l*NB_COLONNES+c].couleur*plateauDeJeu[l*NB_COLONNES+c].valeur;
 
 #ifdef DEBUG
 	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
@@ -305,7 +304,7 @@ int f_bataille(int l, int c)
 	if(somme < 0)	return -1;
 	if(somme > 0)	return 1;
 
-	return plateauDeJeu[l*NB_COLONNES+c].couleur;
+	return plateau[l*NB_COLONNES+c].couleur;
 }
 
 
@@ -366,7 +365,7 @@ int f_bouge_piece(Pion *plateau, int l1, int c1, int l2, int c2, int couleur)
 	}
 	else
 	{
-		gagnant=f_bataille(l2, c2);
+		gagnant=f_bataille(plateau, l2, c2);
 		/* victoire */
 		if(gagnant == couleur)
 		{
@@ -428,19 +427,13 @@ int f_valeur(Pion* jeu, int joueur)
 
 int f_eval(Pion *plateau, int joueur)
 {
-    int score = 0;
+	(void)joueur;
+	int gagnant = eval_test_victoire(plateau);
+	if (gagnant == currentPlayer)  return INFINI;
+	if (gagnant == -currentPlayer) return -INFINI;
 
-    /* 1. Victoire / défaite absolue sur le plateau simulé */
-    int gagnant = eval_test_victoire(plateau);
-    if (gagnant == joueur)  return INFINI;
-    if (gagnant == -joueur) return -INFINI;
-	if (currentPlayer == 1) {
-		score = eval_avec_poids(plateau, joueur, &score1);
-	} else {
-		score = eval_avec_poids(plateau, joueur, &score2);
-	}
-	return score;
-
+	const PoidsEval *p = (currentPlayer == 1) ? &score1 : &score2;
+	return eval_avec_poids(plateau, currentPlayer, p);
 }
 void f_copie_plateau(Pion* source, Pion* destination)
 {
@@ -475,10 +468,16 @@ Pion* f_raz_plateau()
 int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, int beta){
     node++;
 
+    int gagnant = eval_test_victoire(plateau);
+    if (gagnant != 0) {
+        return (gagnant == currentPlayer) ? (INFINI - profondeur) : (-INFINI + profondeur);
+    }
+
     if(profondeur == PROFONDEUR){
-        return f_eval(plateau, joueur);
+        return f_eval(plateau, currentPlayer);
     }
     int val = INFINI;
+    int coup_valide = 0;
     
     for (int i = 0; i < NB_LIGNES; i++) {
         for (int j = 0; j < NB_COLONNES; j++) {
@@ -487,6 +486,7 @@ int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, in
                     for (int sj = -1; sj <= 1; sj++) {
 							if(!(si == 0 && sj == 0)){
 								if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+								coup_valide = 1;
 								Pion sous_plateau[NB_LIGNES * NB_COLONNES];
 								f_copie_plateau(plateau, sous_plateau);
 								f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
@@ -514,16 +514,23 @@ int f_min(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, in
             }
         }
     }
+    if (!coup_valide) return f_eval(plateau, currentPlayer);
     return val;
 }
 
 int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, int beta){  
     node++;
 
+    int gagnant = eval_test_victoire(plateau);
+    if (gagnant != 0) {
+        return (gagnant == currentPlayer) ? (INFINI - profondeur) : (-INFINI + profondeur);
+    }
+
     if(profondeur == PROFONDEUR){
-        return f_eval(plateau, joueur);
+        return f_eval(plateau, currentPlayer);
     }
     int val = -INFINI;
+    int coup_valide = 0;
 
     for (int i = 0; i < NB_LIGNES; i++) {
         for (int j = 0; j < NB_COLONNES; j++) {
@@ -532,6 +539,7 @@ int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, in
                     for (int sj = -1; sj <= 1; sj++) {
 						if(!(si == 0 && sj == 0)){
 							if (f_test_mouvement(plateau, i, j, i + si, j + sj, joueur) == 0) {
+								coup_valide = 1;
 								Pion sous_plateau[NB_LIGNES * NB_COLONNES];
 								f_copie_plateau(plateau, sous_plateau);
 								f_bouge_piece(sous_plateau, i, j, i + si, j + sj, joueur);
@@ -559,6 +567,7 @@ int f_max(Pion* plateau, int joueur, Suite *suite, int profondeur, int alpha, in
         	}
     	}
 	}
+    if (!coup_valide) return f_eval(plateau, currentPlayer);
 	return val;
 }
 /**
@@ -635,10 +644,6 @@ void f_humain(int joueur){
 int main(){
 	srand(time(NULL));
 
-	/* Profils des deux IA (modifiables parmi les 5 presets disponibles) */
-	score1 = POIDS_CHAMPION_EQUILIBRE;
-	score2 = POIDS_PHALANGE_BLINDEE;
-
 	int fin = 0,mode=0 , ret, joueur = 1;
 	currentPlayer = joueur;
 	printf("1 humain vs IA\n2 humain vs humain\n3 IA vs IA\n");
@@ -682,6 +687,23 @@ int main(){
 				fin = 1;
 				break;
 			}
+		}
+
+		if (!fin && nbrCoups >= 150)
+		{
+			f_affiche_plateau(plateauDeJeu);
+			printf("Limite de 150 coups atteinte ! Match termine.\n");
+			int mat1 = eval_valeur(plateauDeJeu, 1);
+			int mat2 = eval_valeur(plateauDeJeu, -1);
+			printf("Score Materiel : Joueur 1 (x) = %d | Joueur -1 (o) = %d\n", mat1, mat2);
+			if (mat1 > mat2)
+				printf("Victoire aux points pour joueur x !\n");
+			else if (mat2 > mat1)
+				printf("Victoire aux points pour joueur o !\n");
+			else
+				printf("Match nul parfait !\n");
+			fin = 1;
+			break;
 		}
 		joueur = -joueur;
 		currentPlayer = joueur;

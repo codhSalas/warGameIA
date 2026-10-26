@@ -7,7 +7,7 @@ SRC_DIR = src
 INC_DIR = includes
 OBJ_DIR = obj
 
-TARGETS = wargame_min_max wargame_alpha_beta tournoi
+TARGETS = wargame_min_max wargame_alpha_beta
 
 # Modules d'évaluation découpés par thème dans src/
 EVAL_SRCS = $(wildcard $(SRC_DIR)/*.c)
@@ -41,16 +41,12 @@ wargame_min_max: $(OBJ_DIR)/wargame_min_max.o $(EVAL_OBJS)
 wargame_alpha_beta: $(OBJ_DIR)/wargame_alpha_beta.o $(EVAL_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-tournoi: $(OBJ_DIR)/tournoi.o $(EVAL_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-run_tournoi: tournoi
-	./tournoi
-
 clean:
 	rm -f $(OBJ_DIR)/*.o $(TARGETS) *.o
+	$(MAKE) -C  clean
 
 distclean: clean
 	rm -rf $(OBJ_DIR)
+	$(MAKE) -C  distclean
 
-.PHONY: all wargame debug_min_max debug_alpha_beta clean distclean tournoi run_tournoi
+.PHONY: all wargame debug_min_max debug_alpha_beta clean distclean tournoi run_tournoi ga run_ga
